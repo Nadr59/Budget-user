@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget
+package com.nadrlab.budgetuser
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.nadrlab.baitbudget.ui.AuthScreen
-import com.nadrlab.baitbudget.ui.BaitBudgetTheme
-import com.nadrlab.baitbudget.ui.MainScreen
-import com.nadrlab.baitbudget.viewmodel.BudgetViewModel
+import com.nadrlab.budgetuser.ui.AuthScreen
+import com.nadrlab.budgetuser.ui.BaitBudgetTheme
+import com.nadrlab.budgetuser.ui.MainScreen
+import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

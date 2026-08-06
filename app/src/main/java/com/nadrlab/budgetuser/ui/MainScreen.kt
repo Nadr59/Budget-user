@@ -1,4 +1,4 @@
-  package com.nadrlab.baitbudget.ui
+  package com.nadrlab.budgetuser.ui
 
 import android.content.ClipboardManager
 import android.content.Context
@@ -20,7 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nadrlab.baitbudget.viewmodel.BudgetViewModel
+import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*

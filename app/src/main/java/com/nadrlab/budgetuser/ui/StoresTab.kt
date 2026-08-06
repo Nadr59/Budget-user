@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.ui
+package com.nadrlab.budgetuser.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nadrlab.baitbudget.viewmodel.BudgetViewModel
+import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 
 @Composable
 fun StoresTab(viewModel: BudgetViewModel, isAdmin: Boolean = true) {

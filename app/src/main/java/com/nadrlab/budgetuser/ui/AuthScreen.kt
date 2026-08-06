@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.ui
+package com.nadrlab.budgetuser.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.ui
+package com.nadrlab.budgetuser.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nadrlab.baitbudget.viewmodel.BudgetViewModel
+import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 

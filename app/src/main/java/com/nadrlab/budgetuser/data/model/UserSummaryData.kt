@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.data.model
+package com.nadrlab.budgetuser.data.model
 
 data class UserSummaryData(
     val senderTag: String,

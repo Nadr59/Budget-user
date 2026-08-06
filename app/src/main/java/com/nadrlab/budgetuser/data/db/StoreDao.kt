@@ -1,7 +1,7 @@
-package com.nadrlab.baitbudget.data.db
+package com.nadrlab.budgetuser.data.db
 
 import androidx.room.*
-import com.nadrlab.baitbudget.data.model.Store
+import com.nadrlab.budgetuser.data.model.Store
 import kotlinx.coroutines.flow.Flow
 
 @Dao

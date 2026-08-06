@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.ui
+package com.nadrlab.budgetuser.ui
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

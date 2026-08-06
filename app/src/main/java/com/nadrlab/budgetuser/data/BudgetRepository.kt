@@ -1,10 +1,10 @@
-package com.nadrlab.baitbudget.data
+package com.nadrlab.budgetuser.data
 
-import com.nadrlab.baitbudget.data.db.StoreDao
-import com.nadrlab.baitbudget.data.db.TransactionDao
-import com.nadrlab.baitbudget.data.model.Store
-import com.nadrlab.baitbudget.data.model.Transaction
-import com.nadrlab.baitbudget.data.model.UserSummaryData
+import com.nadrlab.budgetuser.data.db.StoreDao
+import com.nadrlab.budgetuser.data.db.TransactionDao
+import com.nadrlab.budgetuser.data.model.Store
+import com.nadrlab.budgetuser.data.model.Transaction
+import com.nadrlab.budgetuser.data.model.UserSummaryData
 import kotlinx.coroutines.flow.Flow
 
 class BudgetRepository(

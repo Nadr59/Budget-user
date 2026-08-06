@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.data.model
+package com.nadrlab.budgetuser.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
