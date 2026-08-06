@@ -1,3 +1,4 @@
+
 package com.nadrlab.budgetuser.viewmodel
 
 import android.app.Application
@@ -10,7 +11,6 @@ import com.nadrlab.budgetuser.data.db.AppDatabase
 import com.nadrlab.budgetuser.data.model.Store
 import com.nadrlab.budgetuser.data.model.Transaction
 import com.nadrlab.budgetuser.data.model.TransactionType
-import com.nadrlab.budgetuser.data.model.UserSummaryData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,11 +25,8 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     private val repository = BudgetRepository(db.storeDao(), db.transactionDao())
     val userPrefs = UserPrefs(application)
 
-    private val _isLoggedIn = MutableStateFlow(userPrefs.isLoggedIn)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
-
-    private val _isAdmin = MutableStateFlow(userPrefs.isAdmin)
-    val isAdmin: StateFlow<Boolean> = _isAdmin
+    private val _isReady = MutableStateFlow(userPrefs.isSetupComplete)
+    val isReady: StateFlow<Boolean> = _isReady
 
     private val _userName = MutableStateFlow(userPrefs.userName)
     val userName: StateFlow<String> = _userName
@@ -45,9 +42,6 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
 
     val allTimePayments = repository.getAllTimePayments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
-    val userSummaries: StateFlow<List<UserSummaryData>> = repository.getUserSummaries()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val monthStart: Long
         get() {
@@ -111,36 +105,22 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onMessageShown() { _message.value = null }
 
-    fun loginAsAdmin(password: String): Boolean {
-        return if (userPrefs.checkAdminPassword(password)) {
-            userPrefs.isAdmin = true
-            userPrefs.isLoggedIn = true
-            userPrefs.userName = "مشرف"
-            _isAdmin.value = true
-            _isLoggedIn.value = true
-            _userName.value = "مشرف"
-            true
-        } else false
+    fun setUserName(name: String) {
+        userPrefs.userName = name
+        _userName.value = name
+        _isReady.value = true
     }
 
-    fun loginAsUser(name: String) {
-        userPrefs.isAdmin = false
-        userPrefs.isLoggedIn = true
-        userPrefs.userName = name
-        _isAdmin.value = false
-        _isLoggedIn.value = true
-        _userName.value = name
+    fun changeUserName(newName: String) {
+        userPrefs.userName = newName
+        _userName.value = newName
+        _message.value = "تم تغيير الاسم إلى $newName"
     }
 
     fun logout() {
-        userPrefs.logout()
-        _isLoggedIn.value = false
-        _isAdmin.value = false
+        userPrefs.clear()
+        _isReady.value = false
         _userName.value = ""
-    }
-
-    fun changeAdminPassword(oldPass: String, newPass: String): Boolean {
-        return userPrefs.changeAdminPassword(oldPass, newPass)
     }
 
     fun addStore(name: String, phone: String, address: String) {
@@ -198,16 +178,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             .replace('٩', '9').replace('٫', '.')
     }
 
-    
-        // ═══════════════════════════════
-    // التصدير (يقرأ من قاعدة البيانات مباشرة)
-    // ═══════════════════════════════
-    
-    // ═══════════════════════════════
-    // التصدير (BB2:: مع قراءة مباشرة من Room)
-    // ═══════════════════════════════
     suspend fun exportDataForSharing(): String {
-        // نقرأ مباشرة من قاعدة البيانات
         val stores = db.storeDao().getAllStoresOnce()
         val transactions = db.transactionDao().getAllTransactionsOnce()
 
@@ -260,106 +231,6 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             appendLine("BB2::$base64")
             appendLine("────────────────")
             appendLine("📥 انسخ هذه الرسالة واضغط استيراد")
-        }
-    }
-    fun importFromClipboard(clipboardText: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val cleanText = clipboardText
-                    .replace(Regex("[\\u200B-\\u200F\\u202A-\\u202E\\uFEFF]"), "")
-                    .replace("\r\n", "\n").replace("\r", "\n")
-
-                val markerIndex = cleanText.indexOf("BB2::")
-                if (markerIndex < 0) {
-                    _message.value = "لم يتم العثور على بيانات صالحة"
-                    return@launch
-                }
-
-                val afterMarker = cleanText.substring(markerIndex + 5)
-                val base64Chars = StringBuilder()
-
-                for (line in afterMarker.split("\n")) {
-                    val trimmed = line.trim()
-                    if (trimmed.startsWith("────") || trimmed.startsWith("---")) {
-                        if (base64Chars.isNotEmpty()) break
-                        continue
-                    }
-                    if (trimmed.length < 20 && base64Chars.isEmpty() && !trimmed.contains("=")) continue
-                    for (ch in trimmed) {
-                        if (ch.isLetterOrDigit() || ch == '+' || ch == '/' || ch == '-' || ch == '_' || ch == '=') {
-                            base64Chars.append(ch)
-                        }
-                    }
-                }
-
-                val base64 = base64Chars.toString().trim()
-                if (base64.length < 20) {
-                    _message.value = "بيانات غير كافية"
-                    return@launch
-                }
-
-                val decoded = try {
-                    Base64.decode(base64, Base64.NO_WRAP or Base64.URL_SAFE)
-                } catch (e: Exception) {
-                    try { Base64.decode(base64, Base64.DEFAULT) }
-                    catch (e2: Exception) {
-                        _message.value = "لا يمكن فك تشفير البيانات"
-                        return@launch
-                    }
-                }
-
-                val json = try { JSONObject(String(decoded, Charsets.UTF_8)) }
-                catch (e: Exception) {
-                    _message.value = "بيانات غير صالحة"
-                    return@launch
-                }
-
-                val senderName = json.optString("u", "غير معروف")
-                val storesArray = try { json.getJSONArray("s") } catch (e: Exception) {
-                    _message.value = "لا توجد بقالات"; return@launch
-                }
-                val transArray = try { json.getJSONArray("t") } catch (e: Exception) {
-                    _message.value = "لا توجد معاملات"; return@launch
-                }
-
-                val currentStores = db.storeDao().getAllStoresOnce()
-                val storeMap = mutableMapOf<String, Long>()
-
-                for (i in 0 until storesArray.length()) {
-                    val s = storesArray.getJSONObject(i)
-                    val name = s.getString("n")
-                    val phone = s.optString("p", "")
-                    val address = s.optString("a", "")
-                    val existing = currentStores.find { it.name.equals(name, ignoreCase = true) }
-                    val storeId = existing?.id ?: repository.insertStore(
-                        Store(name = name, phone = phone, address = address)
-                    )
-                    storeMap[name] = storeId
-                }
-
-                var count = 0
-                for (i in 0 until transArray.length()) {
-                    try {
-                        val t = transArray.getJSONObject(i)
-                        val storeName = t.getString("n")
-                        val storeId = storeMap[storeName] ?: continue
-                        repository.insertTransaction(Transaction(
-                            storeId = storeId,
-                            amount = t.getDouble("a"),
-                            description = t.optString("d", ""),
-                            type = if (t.getString("t") == "P") TransactionType.PURCHASE else TransactionType.PAYMENT,
-                            date = t.getLong("dt"),
-                            note = t.optString("nt", ""),
-                            senderTag = senderName
-                        ))
-                        count++
-                    } catch (_: Exception) {}
-                }
-
-                _message.value = "تم استيراد $count معاملة من $senderName"
-            } catch (e: Exception) {
-                _message.value = "خطأ: ${e.message}"
-            }
         }
     }
 
