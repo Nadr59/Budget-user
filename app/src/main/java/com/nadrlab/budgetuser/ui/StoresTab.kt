@@ -1,3 +1,4 @@
+
 package com.nadrlab.budgetuser.ui
 
 import androidx.compose.foundation.background
@@ -18,7 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 
 @Composable
-fun StoresTab(viewModel: BudgetViewModel, isAdmin: Boolean = true) {
+fun StoresTab(viewModel: BudgetViewModel) {
     val storesWithDebt by viewModel.storesWithDebt.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -64,8 +65,7 @@ fun StoresTab(viewModel: BudgetViewModel, isAdmin: Boolean = true) {
                     StoreCard(
                         storeWithDebt = item,
                         formatAmount = viewModel::formatAmount,
-                        onDelete = { viewModel.deleteStore(item.store) },
-                        isAdmin = isAdmin
+                        onDelete = { viewModel.deleteStore(item.store) }
                     )
                 }
             }
@@ -87,8 +87,7 @@ fun StoresTab(viewModel: BudgetViewModel, isAdmin: Boolean = true) {
 fun StoreCard(
     storeWithDebt: BudgetViewModel.StoreWithDebt,
     formatAmount: (Double) -> String,
-    onDelete: () -> Unit,
-    isAdmin: Boolean = true
+    onDelete: () -> Unit
 ) {
     val debt = storeWithDebt.debt
 
@@ -115,10 +114,8 @@ fun StoreCard(
                         }
                     }
                 }
-                if (isAdmin) {
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, "حذف", tint = Color.Gray)
-                    }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, "حذف", tint = Color.Gray)
                 }
             }
 
