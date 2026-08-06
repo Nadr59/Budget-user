@@ -3,7 +3,6 @@ package com.nadrlab.budgetuser.data.db
 import androidx.room.*
 import com.nadrlab.budgetuser.data.model.Transaction
 import com.nadrlab.budgetuser.data.model.TransactionType
-import com.nadrlab.budgetuser.data.model.UserSummaryData
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -14,6 +13,12 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     suspend fun getAllTransactionsOnce(): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE exported = 0 ORDER BY date DESC")
+    suspend fun getUnexportedTransactions(): List<Transaction>
+
+    @Query("UPDATE transactions SET exported = 1 WHERE exported = 0")
+    suspend fun markAllAsExported()
 
     @Query("SELECT * FROM transactions WHERE storeId = :storeId ORDER BY date DESC")
     fun getTransactionsByStore(storeId: Long): Flow<List<Transaction>>
@@ -40,15 +45,10 @@ interface TransactionDao {
     fun getAllTimePayments(): Flow<Double>
 
     @Query("""
-        SELECT senderTag,
-               COALESCE(SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END), 0) as totalPurchases,
-               COALESCE(SUM(CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END), 0) as totalPayments
-        FROM transactions
-        WHERE senderTag != ''
-        GROUP BY senderTag
-        ORDER BY senderTag ASC
+        SELECT COUNT(*) FROM transactions
+        WHERE storeId = :storeId AND amount = :amount AND type = :type AND date = :date
     """)
-    fun getUserSummaries(): Flow<List<UserSummaryData>>
+    suspend fun countDuplicate(storeId: Long, amount: Double, type: TransactionType, date: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: Transaction): Long
