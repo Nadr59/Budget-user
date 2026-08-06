@@ -43,51 +43,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     val allTimePayments = repository.getAllTimePayments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    private val monthStart: Long
-        get() {
-            val cal = Calendar.getInstance()
-            cal.set(Calendar.DAY_OF_MONTH, 1)
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            return cal.timeInMillis
-        }
-
-    private val monthEnd: Long
-        get() {
-            val cal = Calendar.getInstance()
-            cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-            cal.set(Calendar.HOUR_OF_DAY, 23)
-            cal.set(Calendar.MINUTE, 59)
-            cal.set(Calendar.SECOND, 59)
-            cal.set(Calendar.MILLISECOND, 999)
-            return cal.timeInMillis
-        }
-
-    val monthPurchases = repository.getTotalPurchasesByDateRange(monthStart, monthEnd)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
-    val monthPayments = repository.getTotalPaymentsByDateRange(monthStart, monthEnd)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
-    private val weekStart: Long
-        get() {
-            val cal = Calendar.getInstance()
-            cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            return cal.timeInMillis
-        }
-
-    val weekPurchases = repository.getTotalPurchasesByDateRange(weekStart, System.currentTimeMillis())
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
-    val weekPayments = repository.getTotalPaymentsByDateRange(weekStart, System.currentTimeMillis())
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
+    // ═══ المتاجر مع الأرصدة ═══
     val storesWithDebt: StateFlow<List<StoreWithDebt>> = allStores.flatMapLatest { stores ->
         if (stores.isEmpty()) flowOf(emptyList())
         else combine(stores.map { store ->
@@ -99,6 +55,19 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             }
         }) { it.toList() }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ═══ آخر عملية ═══
+    val lastTransaction: StateFlow<LastTransactionInfo?> =
+        allTransactions.combine(allStores) { transactions, stores ->
+            if (transactions.isEmpty()) null
+            else {
+                val last = transactions.maxByOrNull { it.date }
+                if (last != null) {
+                    val storeName = stores.find { it.id == last.storeId }?.name ?: "غير معروف"
+                    LastTransactionInfo(storeName, last.amount, last.type, last.date, last.description)
+                } else null
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -237,6 +206,14 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     fun formatAmount(amount: Double): String {
         return if (amount == amount.toLong().toDouble()) "%.0f".format(amount) else "%.2f".format(amount)
     }
+
+    data class LastTransactionInfo(
+        val storeName: String,
+        val amount: Double,
+        val type: TransactionType,
+        val date: Long,
+        val description: String
+    )
 
     data class StoreWithDebt(
         val store: Store,
