@@ -1,3 +1,4 @@
+
 package com.nadrlab.budgetuser.ui
 
 import androidx.compose.foundation.background
@@ -26,8 +27,7 @@ private fun normalizeNumbers(text: String): String {
         .replace('٠', '0').replace('١', '1').replace('٢', '2')
         .replace('٣', '3').replace('٤', '4').replace('٥', '5')
         .replace('٦', '6').replace('٧', '7').replace('٨', '8')
-        .replace('٩', '9')
-        .replace('٫', '.')
+        .replace('٩', '9').replace('٫', '.')
 }
 
 private fun isValidAmount(text: String): Boolean {
@@ -54,22 +54,15 @@ fun AddTransactionDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = true
-        )
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .wrapContentHeight(),
+            modifier = Modifier.fillMaxWidth(0.92f).wrapContentHeight(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState())
             ) {
                 Text(title, color = titleColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
@@ -78,23 +71,19 @@ fun AddTransactionDialog(
                     Text("لا توجد بقالات. أضف بقالة أولاً من تبويب البقالات", color = Color.Gray, fontSize = 13.sp)
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onDismiss, modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
                         shape = RoundedCornerShape(10.dp)
                     ) { Text("إغلاق", color = Color.White) }
                     return@Card
                 }
 
-                // ═══ اختيار البقالة ═══
                 Text("البقالة:", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(6.dp))
 
                 Box {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showStoreDropdown = !showStoreDropdown },
+                        modifier = Modifier.fillMaxWidth().clickable { showStoreDropdown = !showStoreDropdown },
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A3A)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
@@ -103,14 +92,8 @@ fun AddTransactionDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                stores.getOrNull(selectedStoreIndex)?.name ?: "اختر",
-                                color = Color.White, fontSize = 15.sp
-                            )
-                            Icon(
-                                if (showStoreDropdown) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                                null, tint = Color(0xFF4CAF50)
-                            )
+                            Text(stores.getOrNull(selectedStoreIndex)?.name ?: "اختر", color = Color.White, fontSize = 15.sp)
+                            Icon(if (showStoreDropdown) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, null, tint = Color(0xFF4CAF50))
                         }
                     }
 
@@ -122,20 +105,12 @@ fun AddTransactionDialog(
                         ) {
                             stores.forEachIndexed { index, store ->
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedStoreIndex = index
-                                            showStoreDropdown = false
-                                        }
+                                    modifier = Modifier.fillMaxWidth()
+                                        .clickable { selectedStoreIndex = index; showStoreDropdown = false }
                                         .background(if (index == selectedStoreIndex) Color(0xFF1A3A1A) else Color.Transparent)
                                         .padding(14.dp)
                                 ) {
-                                    Text(
-                                        store.name,
-                                        color = if (index == selectedStoreIndex) Color(0xFF4CAF50) else Color.White,
-                                        fontSize = 15.sp
-                                    )
+                                    Text(store.name, color = if (index == selectedStoreIndex) Color(0xFF4CAF50) else Color.White, fontSize = 15.sp)
                                 }
                                 if (index < stores.lastIndex) Divider(color = Color(0xFF333333), thickness = 0.5.dp)
                             }
@@ -145,28 +120,19 @@ fun AddTransactionDialog(
 
                 Spacer(Modifier.height(14.dp))
 
-                // ═══ المبلغ (يقبل أرقام عربية وإنجليزية) ═══
                 Text("المبلغ:", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(6.dp))
-
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { newText ->
-                        // يقبل أرقام عربية وإنجليزية ونقطة
-                        amountText = newText.filter { c ->
-                            c.isDigit() || c == '.' || c == '٫' ||
-                            c in '٠'..'٩'
-                        }
+                        amountText = newText.filter { c -> c.isDigit() || c == '.' || c == '٫' || c in '٠'..'٩' }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("مثال: 50 أو ٥٠", color = Color(0xFF666666)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        unfocusedBorderColor = Color(0xFF444444),
-                        cursorColor = Color(0xFF4CAF50)
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF444444), cursorColor = Color(0xFF4CAF50)
                     ),
                     shape = RoundedCornerShape(10.dp)
                 )
@@ -178,63 +144,44 @@ fun AddTransactionDialog(
 
                 Spacer(Modifier.height(12.dp))
 
-                // ═══ الوصف ═══
                 Text("الوصف (اختياري):", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(6.dp))
-
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
+                    value = description, onValueChange = { description = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("مثال: مشتريات يومية", color = Color(0xFF666666)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        unfocusedBorderColor = Color(0xFF444444),
-                        cursorColor = Color(0xFF4CAF50)
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF444444), cursorColor = Color(0xFF4CAF50)
                     ),
                     shape = RoundedCornerShape(10.dp)
                 )
 
                 Spacer(Modifier.height(12.dp))
 
-                // ═══ ملاحظة ═══
                 Text("ملاحظة (اختياري):", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(6.dp))
-
                 OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
+                    value = note, onValueChange = { note = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("أي ملاحظة إضافية", color = Color(0xFF666666)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        unfocusedBorderColor = Color(0xFF444444),
-                        cursorColor = Color(0xFF4CAF50)
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF444444), cursorColor = Color(0xFF4CAF50)
                     ),
                     shape = RoundedCornerShape(10.dp)
                 )
 
                 Spacer(Modifier.height(20.dp))
 
-                // ═══ الأزرار ═══
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
+                        onClick = onDismiss, modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("إلغاء", fontSize = 15.sp)
-                    }
+                    ) { Text("إلغاء", fontSize = 15.sp) }
 
                     Button(
                         onClick = {
@@ -242,24 +189,14 @@ fun AddTransactionDialog(
                             val amount = normalizedAmount.toDoubleOrNull()
                             if (amount != null && amount > 0 && stores.isNotEmpty()) {
                                 val storeId = stores.getOrNull(selectedStoreIndex)?.id
-                                if (storeId != null) {
-                                    onConfirm(storeId, amount, description, note)
-                                }
+                                if (storeId != null) onConfirm(storeId, amount, description, note)
                             }
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = canSubmit,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = titleColor,
-                            disabledContainerColor = Color(0xFF333333)
-                        ),
+                        modifier = Modifier.weight(1f), enabled = canSubmit,
+                        colors = ButtonDefaults.buttonColors(containerColor = titleColor, disabledContainerColor = Color(0xFF333333)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            "تسجيل",
-                            color = if (canSubmit) Color.White else Color.Gray,
-                            fontSize = 15.sp
-                        )
+                        Text("تسجيل", color = if (canSubmit) Color.White else Color.Gray, fontSize = 15.sp)
                     }
                 }
             }
