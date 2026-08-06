@@ -1,4 +1,4 @@
-package com.nadrlab.budgetuser.data.model
+package com.nadrlab.baitbudget.data.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -31,5 +31,6 @@ data class Transaction(
     val type: TransactionType,
     val date: Long = System.currentTimeMillis(),
     val note: String = "",
-    val senderTag: String = ""
+    val senderTag: String = "",
+    val exported: Boolean = false
 )
