@@ -45,8 +45,6 @@ fun MainScreen(viewModel: BudgetViewModel) {
         }
     }
 
-    val totalDebt = storesWithDebt.fold(0.0) { acc, item -> acc + item.debt }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -89,7 +87,6 @@ fun MainScreen(viewModel: BudgetViewModel) {
                 0 -> HomeTab(
                     viewModel = viewModel,
                     storesWithDebt = storesWithDebt,
-                    totalDebt = totalDebt,
                     lastTransaction = lastTransaction,
                     userName = userName,
                     onAddPurchase = { showAddPurchase = true },
@@ -148,7 +145,6 @@ fun MainScreen(viewModel: BudgetViewModel) {
 fun HomeTab(
     viewModel: BudgetViewModel,
     storesWithDebt: List<BudgetViewModel.StoreWithDebt>,
-    totalDebt: Double,
     lastTransaction: BudgetViewModel.LastTransactionInfo?,
     userName: String,
     onAddPurchase: () -> Unit,
@@ -186,40 +182,7 @@ fun HomeTab(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        // ═══ بطاقة المديونية ═══
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (totalDebt > 0) Color(0xFF3A1A1A) else Color(0xFF1A3A1A)
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    if (totalDebt > 0) Icons.Default.Warning else Icons.Default.CheckCircle,
-                    null,
-                    tint = if (totalDebt > 0) Color(0xFFF44336) else Color(0xFF4CAF50),
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (totalDebt > 0) "المديونية الكلية" else if (totalDebt < 0) "رصيد لك" else "كل الحسابات مسدّدة",
-                    color = Color.White, fontSize = 14.sp
-                )
-                Text(
-                    viewModel.formatAmount(kotlin.math.abs(totalDebt)),
-                    color = if (totalDebt > 0) Color(0xFFF44336) else if (totalDebt < 0) Color(0xFF4CAF50) else Color.Gray,
-                    fontSize = 36.sp, fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(20.dp))
 
         // ═══ آخر عملية ═══
         Card(
@@ -235,11 +198,7 @@ fun HomeTab(
                 if (lastTransaction != null) {
                     val isPurchase = lastTransaction.type == TransactionType.PURCHASE
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "آخر عملية",
-                            color = Color(0xFFE8C547),
-                            fontSize = 12.sp
-                        )
+                        Text("آخر عملية", color = Color(0xFFE8C547), fontSize = 12.sp)
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
