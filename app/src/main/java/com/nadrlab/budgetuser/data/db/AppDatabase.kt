@@ -1,4 +1,4 @@
-package com.nadrlab.baitbudget.data.db
+package com.nadrlab.budgetuser.data.db
 
 import android.content.Context
 import androidx.room.Database
@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.nadrlab.baitbudget.data.model.Store
-import com.nadrlab.baitbudget.data.model.Transaction
+import com.nadrlab.budgetuser.data.model.Store
+import com.nadrlab.budgetuser.data.model.Transaction
 
 @Database(
     entities = [Store::class, Transaction::class],
