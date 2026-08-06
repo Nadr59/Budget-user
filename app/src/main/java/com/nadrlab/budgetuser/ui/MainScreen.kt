@@ -14,11 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nadrlab.budgetuser.data.model.TransactionType
 import com.nadrlab.budgetuser.viewmodel.BudgetViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -28,10 +28,7 @@ import java.util.*
 fun MainScreen(viewModel: BudgetViewModel) {
     val stores by viewModel.allStores.collectAsState()
     val storesWithDebt by viewModel.storesWithDebt.collectAsState()
-    val monthPurchases by viewModel.monthPurchases.collectAsState()
-    val monthPayments by viewModel.monthPayments.collectAsState()
-    val weekPurchases by viewModel.weekPurchases.collectAsState()
-    val weekPayments by viewModel.weekPayments.collectAsState()
+    val lastTransaction by viewModel.lastTransaction.collectAsState()
     val userName by viewModel.userName.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -40,8 +37,6 @@ fun MainScreen(viewModel: BudgetViewModel) {
     var showChangeName by remember { mutableStateOf(false) }
     val message by viewModel.message.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     LaunchedEffect(message) {
         message?.let {
@@ -95,8 +90,7 @@ fun MainScreen(viewModel: BudgetViewModel) {
                     viewModel = viewModel,
                     storesWithDebt = storesWithDebt,
                     totalDebt = totalDebt,
-                    weekPurchases = weekPurchases, weekPayments = weekPayments,
-                    monthPurchases = monthPurchases, monthPayments = monthPayments,
+                    lastTransaction = lastTransaction,
                     userName = userName,
                     onAddPurchase = { showAddPurchase = true },
                     onAddPayment = { showAddPayment = true },
@@ -155,15 +149,16 @@ fun HomeTab(
     viewModel: BudgetViewModel,
     storesWithDebt: List<BudgetViewModel.StoreWithDebt>,
     totalDebt: Double,
-    weekPurchases: Double, weekPayments: Double,
-    monthPurchases: Double, monthPayments: Double,
+    lastTransaction: BudgetViewModel.LastTransactionInfo?,
     userName: String,
-    onAddPurchase: () -> Unit, onAddPayment: () -> Unit,
+    onAddPurchase: () -> Unit,
+    onAddPayment: () -> Unit,
     onChangeName: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var isExporting by remember { mutableStateOf(false) }
+    val dateFormat = remember { SimpleDateFormat("HH:mm - yyyy/MM/dd", Locale("ar")) }
 
     Column(
         modifier = Modifier
@@ -172,6 +167,7 @@ fun HomeTab(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+        // ═══ العنوان ═══
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -192,6 +188,7 @@ fun HomeTab(
 
         Spacer(Modifier.height(16.dp))
 
+        // ═══ بطاقة المديونية ═══
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -222,8 +219,69 @@ fun HomeTab(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
+        // ═══ آخر عملية ═══
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (lastTransaction != null) {
+                    val isPurchase = lastTransaction.type == TransactionType.PURCHASE
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "آخر عملية",
+                            color = Color(0xFFE8C547),
+                            fontSize = 12.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (isPurchase) "شراء" else "دفع",
+                                color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                " من ${lastTransaction.storeName}",
+                                color = Color.White, fontSize = 13.sp
+                            )
+                        }
+                        if (lastTransaction.description.isNotBlank()) {
+                            Text(lastTransaction.description, color = Color.Gray, fontSize = 11.sp)
+                        }
+                        Text(
+                            dateFormat.format(Date(lastTransaction.date)),
+                            color = Color(0xFF666666), fontSize = 11.sp
+                        )
+                    }
+                    Text(
+                        viewModel.formatAmount(lastTransaction.amount),
+                        color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
+                        fontSize = 24.sp, fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Receipt, null, tint = Color.Gray, modifier = Modifier.size(32.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text("لا توجد معاملات بعد", color = Color.Gray, fontSize = 14.sp)
+                        Text("ابدأ بتسجيل أول شراء", color = Color(0xFF666666), fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // ═══ أزرار شراء/دفع ═══
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = onAddPurchase, modifier = Modifier.weight(1f),
@@ -247,6 +305,7 @@ fun HomeTab(
 
         Spacer(Modifier.height(12.dp))
 
+        // ═══ زر التصدير ═══
         Button(
             onClick = {
                 isExporting = true
@@ -277,28 +336,9 @@ fun HomeTab(
             Text("📤 تصدير وإرسال عبر الواتساب", color = Color.White, fontSize = 14.sp)
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        Text("هذا الأسبوع", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard(Modifier.weight(1f), Icons.Default.ShoppingCart, "مشتريات", viewModel.formatAmount(weekPurchases), Color(0xFFF44336))
-            SummaryCard(Modifier.weight(1f), Icons.Default.Payment, "مدفوعات", viewModel.formatAmount(weekPayments), Color(0xFF4CAF50))
-            SummaryCard(Modifier.weight(1f), Icons.Default.TrendingDown, "الصافي", viewModel.formatAmount(weekPurchases - weekPayments), if (weekPurchases - weekPayments > 0) Color(0xFFFF9800) else Color(0xFF4CAF50))
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text("هذا الشهر", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard(Modifier.weight(1f), Icons.Default.ShoppingCart, "مشتريات", viewModel.formatAmount(monthPurchases), Color(0xFFF44336))
-            SummaryCard(Modifier.weight(1f), Icons.Default.Payment, "مدفوعات", viewModel.formatAmount(monthPayments), Color(0xFF4CAF50))
-            SummaryCard(Modifier.weight(1f), Icons.Default.TrendingDown, "الصافي", viewModel.formatAmount(monthPurchases - monthPayments), if (monthPurchases - monthPayments > 0) Color(0xFFFF9800) else Color(0xFF4CAF50))
-        }
-
         Spacer(Modifier.height(20.dp))
 
+        // ═══ حسابات البقالات ═══
         if (storesWithDebt.any { it.debt != 0.0 }) {
             Text("حسابات البقالات", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
@@ -380,23 +420,4 @@ fun ChangeNameDialog(currentName: String, onDismiss: () -> Unit, onConfirm: (Str
             TextButton(onClick = onDismiss) { Text("إلغاء", color = Color.Gray) }
         }
     )
-}
-
-@Composable
-fun SummaryCard(modifier: Modifier = Modifier, icon: ImageVector, title: String, value: String, color: Color) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-        shape = RoundedCornerShape(10.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(title, color = Color.Gray, fontSize = 10.sp)
-            Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        }
-    }
 }
