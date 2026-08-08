@@ -58,6 +58,4 @@ interface TransactionDao {
 
     @Delete
     suspend fun deleteTransaction(transaction: Transaction)
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
-suspend fun getAllTransactionsOnce(): List<Transaction>
 }
