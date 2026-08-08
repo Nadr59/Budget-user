@@ -123,9 +123,7 @@ fun MainScreen(viewModel: BudgetViewModel) {
 
     if (showAddPurchase) {
         AddTransactionDialog(
-            title = "تسجيل شراء",
-            titleColor = Color(0xFFF44336),
-            stores = stores,
+            title = "تسجيل شراء", titleColor = Color(0xFFF44336), stores = stores,
             onDismiss = { showAddPurchase = false },
             onConfirm = { storeId, amount, desc, note ->
                 viewModel.addPurchase(storeId, amount, desc, note)
@@ -136,9 +134,7 @@ fun MainScreen(viewModel: BudgetViewModel) {
 
     if (showAddPayment) {
         AddTransactionDialog(
-            title = "تسجيل دفع",
-            titleColor = Color(0xFF4CAF50),
-            stores = stores,
+            title = "تسجيل دفع", titleColor = Color(0xFF4CAF50), stores = stores,
             onDismiss = { showAddPayment = false },
             onConfirm = { storeId, amount, desc, note ->
                 viewModel.addPayment(storeId, amount, desc, note)
@@ -151,16 +147,13 @@ fun MainScreen(viewModel: BudgetViewModel) {
         ChangeNameDialog(
             currentName = userName,
             onDismiss = { showChangeName = false },
-            onConfirm = { newName ->
-                viewModel.changeUserName(newName)
-                showChangeName = false
-            }
+            onConfirm = { newName -> viewModel.changeUserName(newName); showChangeName = false }
         )
     }
 }
 
 // ═══════════════════════════════════════════
-// تبويب الرئيسية — بسيط ونظيف
+// الرئيسية — بسيطة ونظيفة
 // ═══════════════════════════════════════════
 @Composable
 fun HomeTab(
@@ -175,6 +168,9 @@ fun HomeTab(
     val context = LocalContext.current
     var isExporting by remember { mutableStateOf(false) }
     val dateFormat = remember { SimpleDateFormat("HH:mm - yyyy/MM/dd", Locale("ar")) }
+
+    // ═══ تنبيه التكرارات ═══
+    val duplicateWarnings by viewModel.duplicateWarnings.collectAsState()
 
     Column(
         modifier = Modifier
@@ -202,7 +198,37 @@ fun HomeTab(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
+
+        // ═══ تنبيه التكرارات ═══
+        if (duplicateWarnings.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF3A2A1A)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800), modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            "⚠️ تنبيه: ${duplicateWarnings.size} عملية مكررة مشبوهة",
+                            color = Color(0xFFFF9800), fontSize = 13.sp, fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "انتقل إلى التقارير للمراجعة",
+                            color = Color(0xFF886644), fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         // ═══ آخر عملية ═══
         Card(
@@ -211,9 +237,7 @@ fun HomeTab(
             shape = RoundedCornerShape(16.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -238,10 +262,7 @@ fun HomeTab(
                                 )
                             }
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                lastTransaction.storeName,
-                                color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
-                            )
+                            Text(lastTransaction.storeName, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                         if (lastTransaction.description.isNotBlank()) {
                             Spacer(Modifier.height(4.dp))
@@ -251,10 +272,7 @@ fun HomeTab(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Schedule, null, tint = Color(0xFF666666), modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                dateFormat.format(Date(lastTransaction.date)),
-                                color = Color(0xFF666666), fontSize = 12.sp
-                            )
+                            Text(dateFormat.format(Date(lastTransaction.date)), color = Color(0xFF666666), fontSize = 12.sp)
                         }
                     }
                     Text(
@@ -279,25 +297,21 @@ fun HomeTab(
 
         Spacer(Modifier.height(20.dp))
 
-        // ═══ أزرار شراء/دفع ═══
+        // ═══ أزرار ═══
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
-                onClick = onAddPurchase,
-                modifier = Modifier.weight(1f),
+                onClick = onAddPurchase, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(vertical = 16.dp)
             ) {
                 Icon(Icons.Default.AddShoppingCart, null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
                 Text("شراء", color = Color.White, fontSize = 16.sp)
             }
             Button(
-                onClick = onAddPayment,
-                modifier = Modifier.weight(1f),
+                onClick = onAddPayment, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(vertical = 16.dp)
             ) {
                 Icon(Icons.Default.Payment, null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
@@ -307,7 +321,7 @@ fun HomeTab(
 
         Spacer(Modifier.height(16.dp))
 
-        // ═══ زر التصدير ═══
+        // ═══ تصدير ═══
         Button(
             onClick = {
                 isExporting = true
@@ -315,19 +329,16 @@ fun HomeTab(
                     try {
                         val msg = viewModel.exportDataForSharing()
                         val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, msg)
+                            type = "text/plain"; putExtra(Intent.EXTRA_TEXT, msg)
                         }
                         context.startActivity(Intent.createChooser(intent, "إرسال عبر"))
                     } catch (_: Exception) {}
                     isExporting = false
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isExporting,
+            modifier = Modifier.fillMaxWidth(), enabled = !isExporting,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-            shape = RoundedCornerShape(14.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             if (isExporting) {
                 CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
@@ -343,20 +354,24 @@ fun HomeTab(
 }
 
 // ═══════════════════════════════════════════
-// تبويب التقارير — جديد
+// التقارير — إحصائيات + تكرارات + تقرير + بقالات
 // ═══════════════════════════════════════════
 @Composable
 fun ReportsTab(
     viewModel: BudgetViewModel,
     storesWithDebt: List<BudgetViewModel.StoreWithDebt>
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val transactionCount by viewModel.transactionCount.collectAsState()
     val purchaseCount by viewModel.purchaseCount.collectAsState()
     val paymentCount by viewModel.paymentCount.collectAsState()
     val allTimePurchases by viewModel.allTimePurchases.collectAsState()
     val allTimePayments by viewModel.allTimePayments.collectAsState()
     val todayTransactions by viewModel.todayTransactions.collectAsState()
+    val duplicateWarnings by viewModel.duplicateWarnings.collectAsState()
     var showDetailedReport by remember { mutableStateOf(false) }
+    var isSendingReport by remember { mutableStateOf(false) }
 
     val totalDebt = allTimePurchases - allTimePayments
 
@@ -370,7 +385,7 @@ fun ReportsTab(
         Text("التقارير", fontSize = 22.sp, color = Color(0xFFE8C547), fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
 
-        // ═══ إحصائيات العمليات ═══
+        // ═══ إحصائيات ═══
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
@@ -383,28 +398,18 @@ fun ReportsTab(
                     Text("إحصائيات العمليات", color = Color(0xFFE8C547), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     StatItem(Icons.Default.Receipt, "العمليات", "$transactionCount", Color(0xFF2196F3))
                     StatItem(Icons.Default.ShoppingCart, "مشتريات", "$purchaseCount", Color(0xFFF44336))
                     StatItem(Icons.Default.Payment, "مدفوعات", "$paymentCount", Color(0xFF4CAF50))
                 }
-
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(color = Color(0xFF2A2A3E))
                 Spacer(Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     StatItem(Icons.Default.TrendingUp, "إجمالي المشتريات", viewModel.formatAmount(allTimePurchases), Color(0xFFF44336))
                     StatItem(Icons.Default.TrendingDown, "إجمالي المدفوعات", viewModel.formatAmount(allTimePayments), Color(0xFF4CAF50))
                 }
-
                 if (todayTransactions.isNotEmpty()) {
                     Spacer(Modifier.height(14.dp))
                     HorizontalDivider(color = Color(0xFF2A2A3E))
@@ -416,7 +421,7 @@ fun ReportsTab(
 
         Spacer(Modifier.height(12.dp))
 
-        // ═══ المديونية الكلية ═══
+        // ═══ المديونية ═══
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -425,9 +430,7 @@ fun ReportsTab(
             shape = RoundedCornerShape(14.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -436,10 +439,7 @@ fun ReportsTab(
                         if (totalDebt > 0) "المديونية الكلية" else if (totalDebt < 0) "رصيد لك" else "كل شيء مسدد",
                         color = Color.White, fontSize = 14.sp
                     )
-                    Text(
-                        "${transactionCount} عملية مسجلة",
-                        color = Color(0xFF666666), fontSize = 11.sp
-                    )
+                    Text("${transactionCount} عملية مسجلة", color = Color(0xFF666666), fontSize = 11.sp)
                 }
                 Text(
                     viewModel.formatAmount(kotlin.math.abs(totalDebt)),
@@ -451,17 +451,114 @@ fun ReportsTab(
 
         Spacer(Modifier.height(12.dp))
 
-        // ═══ زر التقرير المفصل ═══
-        OutlinedButton(
-            onClick = { showDetailedReport = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE8C547)),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(vertical = 14.dp)
-        ) {
-            Icon(Icons.Default.Assessment, null, tint = Color(0xFFE8C547), modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("📋 تقرير مفصل بالعمليات", color = Color(0xFFE8C547), fontSize = 14.sp)
+        // ═══ تنبيه التكرارات ═══
+        if (duplicateWarnings.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF3A2A1A)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "⚠️ ${duplicateWarnings.size} عملية مكررة مشبوهة",
+                            color = Color(0xFFFF9800), fontSize = 14.sp, fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+
+                    for (dup in duplicateWarnings) {
+                        val isPurchase = dup.type == TransactionType.PURCHASE
+                        val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale("ar"))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1A10)),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "${dup.storeName} - ${if (isPurchase) "شراء" else "دفع"}",
+                                        color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        viewModel.formatAmount(dup.amount),
+                                        color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
+                                        fontSize = 13.sp, fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "1️⃣ ${dateFormat.format(Date(dup.transaction1.date))}",
+                                    color = Color(0xFF888888), fontSize = 10.sp
+                                )
+                                Text(
+                                    "2️⃣ ${dateFormat.format(Date(dup.transaction2.date))}",
+                                    color = Color(0xFF888888), fontSize = 10.sp
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "الفارق: ${dup.timeDiff / 1000 / 60} دقيقة",
+                                    color = Color(0xFFFF9800), fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // ═══ أزرار التقارير ═══
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { showDetailedReport = true },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE8C547)),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(vertical = 14.dp)
+            ) {
+                Icon(Icons.Default.Assessment, null, tint = Color(0xFFE8C547), modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("📋 تقرير مفصل", color = Color(0xFFE8C547), fontSize = 13.sp)
+            }
+
+            Button(
+                onClick = {
+                    isSendingReport = true
+                    scope.launch {
+                        try {
+                            val report = viewModel.generateReportForAdmin()
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, report)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "إرسال التقرير للمشرف"))
+                        } catch (_: Exception) {}
+                        isSendingReport = false
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                enabled = !isSendingReport,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(vertical = 14.dp)
+            ) {
+                if (isSendingReport) {
+                    CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Send, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("📤 إرسال للمشرف", color = Color.White, fontSize = 13.sp)
+            }
         }
 
         Spacer(Modifier.height(20.dp))
@@ -488,9 +585,7 @@ fun ReportsTab(
         } else {
             for (item in storesWithDebt) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (item.debt > 0) Color(0xFF2A1A1A)
                         else if (item.debt < 0) Color(0xFF1A2A1A)
@@ -499,9 +594,7 @@ fun ReportsTab(
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -562,10 +655,7 @@ fun StatItem(icon: ImageVector, label: String, value: String, color: Color) {
 // حوار التقرير المفصل
 // ═══════════════════════════════════════════
 @Composable
-fun DetailedReportDialog(
-    viewModel: BudgetViewModel,
-    onDismiss: () -> Unit
-) {
+fun DetailedReportDialog(viewModel: BudgetViewModel, onDismiss: () -> Unit) {
     val reportItems by viewModel.detailedReportItems.collectAsState()
     val allTimePurchases by viewModel.allTimePurchases.collectAsState()
     val allTimePayments by viewModel.allTimePayments.collectAsState()
@@ -590,11 +680,7 @@ fun DetailedReportDialog(
                     Text("لا توجد عمليات مسجلة", color = Color.Gray, fontSize = 14.sp)
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp)
-                ) {
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                     item {
                         Row(
                             modifier = Modifier
@@ -614,12 +700,8 @@ fun DetailedReportDialog(
                     items(reportItems) { item ->
                         val isPurchase = item.type == TransactionType.PURCHASE
                         val bgColor = if (reportItems.indexOf(item) % 2 == 0) Color(0xFF151520) else Color(0xFF1A1A2E)
-
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(bgColor, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth().background(bgColor, RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -665,9 +747,7 @@ fun DetailedReportDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("إغلاق", color = Color(0xFFE8C547))
-            }
+            TextButton(onClick = onDismiss) { Text("إغلاق", color = Color(0xFFE8C547)) }
         }
     )
 }
@@ -678,17 +758,13 @@ fun DetailedReportDialog(
 @Composable
 fun ChangeNameDialog(currentName: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var newName by remember { mutableStateOf(currentName) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("تغيير الاسم", color = Color(0xFF4CAF50)) },
         text = {
             OutlinedTextField(
-                value = newName,
-                onValueChange = { newName = it },
-                label = { Text("الاسم الجديد") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                value = newName, onValueChange = { newName = it },
+                label = { Text("الاسم الجديد") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                     focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray
