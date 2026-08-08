@@ -10,13 +10,13 @@ import com.nadrlab.budgetuser.data.db.AppDatabase
 import com.nadrlab.budgetuser.data.model.Store
 import com.nadrlab.budgetuser.data.model.Transaction
 import com.nadrlab.budgetuser.data.model.TransactionType
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class BudgetViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -56,12 +56,9 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
 
     val todayTransactions: StateFlow<List<Transaction>> = allTransactions
         .map { txs ->
-            val cal = Calendar.getInstance()
-            val startOfDay = cal.apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+            val startOfDay = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
             txs.filter { it.date >= startOfDay }
         }
@@ -71,16 +68,42 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         allTransactions.combine(allStores) { transactions, stores ->
             transactions.sortedByDescending { it.date }.map { tx ->
                 val storeName = stores.find { it.id == tx.storeId }?.name ?: "غير معروف"
-                ReportItem(
-                    id = tx.id,
-                    storeName = storeName,
-                    description = tx.description,
-                    amount = tx.amount,
-                    type = tx.type,
-                    date = tx.date,
-                    note = tx.note
-                )
+                ReportItem(tx.id, storeName, tx.description, tx.amount, tx.type, tx.date, tx.note)
             }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ═══ جديد: كشف التكرارات ═══
+    val duplicateWarnings: StateFlow<List<DuplicateWarning>> =
+        allTransactions.combine(allStores) { transactions, stores ->
+            val duplicates = mutableListOf<DuplicateWarning>()
+            val sorted = transactions.sortedByDescending { it.date }
+
+            for (i in sorted.indices) {
+                for (j in i + 1 until sorted.size) {
+                    val a = sorted[i]
+                    val b = sorted[j]
+
+                    // نفس المبلغ + نفس البقالة + نفس النوع + خلال ساعة
+                    if (a.storeId == b.storeId &&
+                        a.amount == b.amount &&
+                        a.type == b.type &&
+                        kotlin.math.abs(a.date - b.date) < TimeUnit.HOURS.toMillis(1)
+                    ) {
+                        val storeName = stores.find { it.id == a.storeId }?.name ?: "غير معروف"
+                        duplicates.add(
+                            DuplicateWarning(
+                                transaction1 = a,
+                                transaction2 = b,
+                                storeName = storeName,
+                                amount = a.amount,
+                                type = a.type,
+                                timeDiff = kotlin.math.abs(a.date - b.date)
+                            )
+                        )
+                    }
+                }
+            }
+            duplicates.distinctBy { setOf(it.transaction1.id, it.transaction2.id) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val storesWithDebt: StateFlow<List<StoreWithDebt>> = allStores.flatMapLatest { stores ->
@@ -185,6 +208,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             .replace('٩', '9').replace('٫', '.')
     }
 
+    // ═══ تصدير بيانات للمشاركة (الأصلي) ═══
     suspend fun exportDataForSharing(): String {
         val stores = db.storeDao().getAllStoresOnce()
         val transactions = db.transactionDao().getUnexportedTransactions()
@@ -202,9 +226,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             val sa = JSONArray()
             for (store in stores) {
                 sa.put(JSONObject().apply {
-                    put("n", store.name)
-                    put("p", store.phone)
-                    put("a", store.address)
+                    put("n", store.name); put("p", store.phone); put("a", store.address)
                 })
             }
             put("s", sa)
@@ -213,12 +235,9 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             for (t in transactions) {
                 val storeName = stores.find { it.id == t.storeId }?.name ?: ""
                 ta.put(JSONObject().apply {
-                    put("n", storeName)
-                    put("a", t.amount)
-                    put("d", t.description)
+                    put("n", storeName); put("a", t.amount); put("d", t.description)
                     put("t", if (t.type == TransactionType.PURCHASE) "P" else "Y")
-                    put("dt", t.date)
-                    put("nt", t.note)
+                    put("dt", t.date); put("nt", t.note)
                 })
             }
             put("t", ta)
@@ -247,6 +266,84 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    // ═══ جديد: تقرير مفصل للمشرف ═══
+    suspend fun generateReportForAdmin(): String {
+        val stores = db.storeDao().getAllStoresOnce()
+        val transactions = db.transactionDao().getAllTransactionsOnce()
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale("ar"))
+        val dateOnly = SimpleDateFormat("yyyy/MM/dd", Locale("ar"))
+
+        if (transactions.isEmpty()) {
+            return "لا توجد معاملات مسجلة"
+        }
+
+        val sorted = transactions.sortedByDescending { it.date }
+        val purchases = transactions.filter { it.type == TransactionType.PURCHASE }
+        val payments = transactions.filter { it.type == TransactionType.PAYMENT }
+        val totalPurchases = purchases.sumOf { it.amount }
+        val totalPayments = payments.sumOf { it.amount }
+        val debt = totalPurchases - totalPayments
+
+        return buildString {
+            appendLine("═══════════════════════════")
+            appendLine("📋 تقرير مشتريات المستخدم")
+            appendLine("═══════════════════════════")
+            appendLine("")
+            appendLine("👤 المستخدم: ${_userName.value}")
+            appendLine("📅 التاريخ: ${dateFormat.format(Date())}")
+            appendLine("")
+
+            // ═══ ملخص ═══
+            appendLine("━━━ الملخص ━━━")
+            appendLine("🛒 عدد المشتريات: ${purchases.size}")
+            appendLine("💰 عدد المدفوعات: ${payments.size}")
+            appendLine("📊 إجمالي العمليات: ${transactions.size}")
+            appendLine("📈 إجمالي المشتريات: ${formatAmount(totalPurchases)}")
+            appendLine("📉 إجمالي المدفوعات: ${formatAmount(totalPayments)}")
+            appendLine("💳 المديونية: ${formatAmount(kotlin.math.abs(debt))}")
+            appendLine("")
+
+            // ═══ حسابات البقالات ═══
+            appendLine("━━━ حسابات البقالات ━━━")
+            for (store in stores) {
+                val storePurchases = purchases.filter { it.storeId == store.id }.sumOf { it.amount }
+                val storePayments = payments.filter { it.storeId == store.id }.sumOf { it.amount }
+                val storeDebt = storePurchases - storePayments
+                if (storeDebt != 0.0) {
+                    appendLine("🏪 ${store.name}: ${if (storeDebt > 0) "عليه" else "له"} ${formatAmount(kotlin.math.abs(storeDebt))}")
+                }
+            }
+            appendLine("")
+
+            // ═══ جدول العمليات ═══
+            appendLine("━━━ جدول العمليات ━━━")
+            appendLine("التاريخ       │ النوع │ البقالة   │ الوصف      │ المبلغ")
+            appendLine("───────────────┼───────┼───────────┼────────────┼────────")
+            for (tx in sorted) {
+                val storeName = stores.find { it.id == tx.storeId }?.name ?: "؟"
+                val type = if (tx.type == TransactionType.PURCHASE) "شراء" else "دفع "
+                val date = dateOnly.format(Date(tx.date))
+                val desc = tx.description.take(10).padEnd(10)
+                appendLine("$date │ $type │ ${storeName.take(9).padEnd(9)} │ $desc │ ${formatAmount(tx.amount)}")
+            }
+            appendLine("")
+
+            // ═══ التكرارات ═══
+            val dups = duplicateWarnings.value
+            if (dups.isNotEmpty()) {
+                appendLine("━━━ تنبيه تكرار ━━━")
+                appendLine("⚠️ يوجد ${dups.size} عملية مشبوهة بالتكرار:")
+                for (dup in dups) {
+                    appendLine("  • ${dup.storeName} - ${formatAmount(dup.amount)} (${if (dup.type == TransactionType.PURCHASE) "شراء" else "دفع"})")
+                }
+                appendLine("")
+            }
+
+            appendLine("═══════════════════════════")
+            appendLine("تقرير تلقائي من تطبيق مشتريات المستخدم")
+        }
+    }
+
     fun formatAmount(amount: Double): String {
         return if (amount == amount.toLong().toDouble()) "%.0f".format(amount) else "%.2f".format(amount)
     }
@@ -255,36 +352,28 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         return SimpleDateFormat("yyyy/MM/dd", Locale("ar")).format(Date(timestamp))
     }
 
-    fun formatTime(timestamp: Long): String {
-        return SimpleDateFormat("HH:mm", Locale("ar")).format(Date(timestamp))
-    }
-
-    fun formatDateTime(timestamp: Long): String {
-        return SimpleDateFormat("yyyy/MM/dd HH:mm", Locale("ar")).format(Date(timestamp))
-    }
-
+    // ═══ بيانات ═══
     data class ReportItem(
-        val id: Long,
+        val id: Long, val storeName: String, val description: String,
+        val amount: Double, val type: TransactionType, val date: Long, val note: String
+    )
+
+    data class DuplicateWarning(
+        val transaction1: Transaction,
+        val transaction2: Transaction,
         val storeName: String,
-        val description: String,
         val amount: Double,
         val type: TransactionType,
-        val date: Long,
-        val note: String
+        val timeDiff: Long
     )
 
     data class LastTransactionInfo(
-        val storeName: String,
-        val amount: Double,
-        val type: TransactionType,
-        val date: Long,
-        val description: String
+        val storeName: String, val amount: Double,
+        val type: TransactionType, val date: Long, val description: String
     )
 
     data class StoreWithDebt(
-        val store: Store,
-        val totalPurchases: Double,
-        val totalPayments: Double,
-        val debt: Double
+        val store: Store, val totalPurchases: Double,
+        val totalPayments: Double, val debt: Double
     )
 }
