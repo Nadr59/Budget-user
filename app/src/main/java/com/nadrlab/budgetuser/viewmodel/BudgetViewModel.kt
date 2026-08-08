@@ -267,7 +267,8 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // ═══ جديد: تقرير مفصل للمشرف ═══
-    suspend fun generateReportForAdmin(): String {
+    
+           suspend fun generateReportForAdmin(): String {
         val stores = db.storeDao().getAllStoresOnce()
         val transactions = db.transactionDao().getAllTransactionsOnce()
         val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale("ar"))
@@ -285,64 +286,59 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         val debt = totalPurchases - totalPayments
 
         return buildString {
-            appendLine("═══════════════════════════")
-            appendLine("📋 تقرير مشتريات المستخدم")
-            appendLine("═══════════════════════════")
+            appendLine("===========================")
+            appendLine("تقرير مشتريات المستخدم")
+            appendLine("===========================")
             appendLine("")
-            appendLine("👤 المستخدم: ${_userName.value}")
-            appendLine("📅 التاريخ: ${dateFormat.format(Date())}")
-            appendLine("")
-
-            // ═══ ملخص ═══
-            appendLine("━━━ الملخص ━━━")
-            appendLine("🛒 عدد المشتريات: ${purchases.size}")
-            appendLine("💰 عدد المدفوعات: ${payments.size}")
-            appendLine("📊 إجمالي العمليات: ${transactions.size}")
-            appendLine("📈 إجمالي المشتريات: ${formatAmount(totalPurchases)}")
-            appendLine("📉 إجمالي المدفوعات: ${formatAmount(totalPayments)}")
-            appendLine("💳 المديونية: ${formatAmount(kotlin.math.abs(debt))}")
+            appendLine("المستخدم: ${_userName.value}")
+            appendLine("التاريخ: ${dateFormat.format(Date())}")
             appendLine("")
 
-            // ═══ حسابات البقالات ═══
-            appendLine("━━━ حسابات البقالات ━━━")
+            appendLine("--- الملخص ---")
+            appendLine("عدد المشتريات: ${purchases.size}")
+            appendLine("عدد المدفوعات: ${payments.size}")
+            appendLine("اجمالي العمليات: ${transactions.size}")
+            appendLine("اجمالي المشتريات: ${formatAmount(totalPurchases)}")
+            appendLine("اجمالي المدفوعات: ${formatAmount(totalPayments)}")
+            appendLine("المديونية: ${formatAmount(kotlin.math.abs(debt))}")
+            appendLine("")
+
+            appendLine("--- حسابات البقالات ---")
             for (store in stores) {
                 val storePurchases = purchases.filter { it.storeId == store.id }.sumOf { it.amount }
                 val storePayments = payments.filter { it.storeId == store.id }.sumOf { it.amount }
                 val storeDebt = storePurchases - storePayments
                 if (storeDebt != 0.0) {
-                    appendLine("🏪 ${store.name}: ${if (storeDebt > 0) "عليه" else "له"} ${formatAmount(kotlin.math.abs(storeDebt))}")
+                    appendLine("${store.name}: ${if (storeDebt > 0) "عليه" else "له"} ${formatAmount(kotlin.math.abs(storeDebt))}")
                 }
             }
             appendLine("")
 
-            // ═══ جدول العمليات ═══
-            appendLine("━━━ جدول العمليات ━━━")
-            appendLine("التاريخ       │ النوع │ البقالة   │ الوصف      │ المبلغ")
-            appendLine("───────────────┼───────┼───────────┼────────────┼────────")
+            appendLine("--- جدول العمليات ---")
+            appendLine("التاريخ      | النوع | البقالة   | المبلغ")
+            appendLine("--------------|-------|-----------|--------")
             for (tx in sorted) {
-                val storeName = stores.find { it.id == tx.storeId }?.name ?: "؟"
+                val storeName = stores.find { it.id == tx.storeId }?.name ?: "?"
                 val type = if (tx.type == TransactionType.PURCHASE) "شراء" else "دفع "
                 val date = dateOnly.format(Date(tx.date))
-                val desc = tx.description.take(10).padEnd(10)
-                appendLine("$date │ $type │ ${storeName.take(9).padEnd(9)} │ $desc │ ${formatAmount(tx.amount)}")
+                appendLine("$date | $type | $storeName | ${formatAmount(tx.amount)}")
             }
             appendLine("")
 
-            // ═══ التكرارات ═══
             val dups = duplicateWarnings.value
             if (dups.isNotEmpty()) {
-                appendLine("━━━ تنبيه تكرار ━━━")
-                appendLine("⚠️ يوجد ${dups.size} عملية مشبوهة بالتكرار:")
+                appendLine("--- تنبيه تكرار ---")
+                appendLine("يوجد ${dups.size} عملية مشبوهة بالتكرار:")
                 for (dup in dups) {
-                    appendLine("  • ${dup.storeName} - ${formatAmount(dup.amount)} (${if (dup.type == TransactionType.PURCHASE) "شراء" else "دفع"})")
+                    appendLine("  - ${dup.storeName} - ${formatAmount(dup.amount)} (${if (dup.type == TransactionType.PURCHASE) "شراء" else "دفع"})")
                 }
                 appendLine("")
             }
 
-            appendLine("═══════════════════════════")
+            appendLine("===========================")
             appendLine("تقرير تلقائي من تطبيق مشتريات المستخدم")
         }
-    }
+    }             
 
     fun formatAmount(amount: Double): String {
         return if (amount == amount.toLong().toDouble()) "%.0f".format(amount) else "%.2f".format(amount)
