@@ -516,7 +516,7 @@ fun ReportsTab(
             Spacer(Modifier.height(12.dp))
         }
 
-        // ═══ أزرار التقارير ═══
+                // ═══ أزرار التقارير ═══
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { showDetailedReport = true },
@@ -557,11 +557,49 @@ fun ReportsTab(
                     Icon(Icons.Default.Send, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("📤 إرسال للمشرف", color = Color.White, fontSize = 13.sp)
+                Text("📤 تقرير شامل", color = Color.White, fontSize = 13.sp)
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        // ═══ جديد: أزرار تقارير البقالات ═══
+        if (storesWithDebt.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text("تقارير البقالات:", color = Color(0xFF888888), fontSize = 12.sp)
+            Spacer(Modifier.height(6.dp))
+
+            for (item in storesWithDebt) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val report = viewModel.generateStoreReport(item.store.id)
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, report)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "تقرير ${item.store.name}"))
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Icon(Icons.Default.Store, null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "تقرير ${item.store.name} (${viewModel.formatAmount(kotlin.math.abs(item.debt))})",
+                        color = Color(0xFF2196F3),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        
+        
+
+        
 
         // ═══ حسابات البقالات ═══
         Text("حسابات البقالات", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
