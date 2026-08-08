@@ -42,6 +42,47 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     val allTimePayments = repository.getAllTimePayments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
+    val transactionCount: StateFlow<Int> = allTransactions
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val purchaseCount: StateFlow<Int> = allTransactions
+        .map { txs -> txs.count { it.type == TransactionType.PURCHASE } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val paymentCount: StateFlow<Int> = allTransactions
+        .map { txs -> txs.count { it.type == TransactionType.PAYMENT } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val todayTransactions: StateFlow<List<Transaction>> = allTransactions
+        .map { txs ->
+            val cal = Calendar.getInstance()
+            val startOfDay = cal.apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            txs.filter { it.date >= startOfDay }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val detailedReportItems: StateFlow<List<ReportItem>> =
+        allTransactions.combine(allStores) { transactions, stores ->
+            transactions.sortedByDescending { it.date }.map { tx ->
+                val storeName = stores.find { it.id == tx.storeId }?.name ?: "غير معروف"
+                ReportItem(
+                    id = tx.id,
+                    storeName = storeName,
+                    description = tx.description,
+                    amount = tx.amount,
+                    type = tx.type,
+                    date = tx.date,
+                    note = tx.note
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val storesWithDebt: StateFlow<List<StoreWithDebt>> = allStores.flatMapLatest { stores ->
         if (stores.isEmpty()) flowOf(emptyList())
         else combine(stores.map { store ->
@@ -153,7 +194,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         val json = JSONObject().apply {
-            put("app", "BaitBudget")
+            put("app", "BudgetUser")
             put("v", 1)
             put("d", System.currentTimeMillis())
             put("u", _userName.value)
@@ -195,7 +236,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         val yCount = transactions.count { it.type == TransactionType.PAYMENT }
 
         return buildString {
-            appendLine("📊 بيانات ميزانية البيت")
+            appendLine("📊 بيانات مشتريات المستخدم")
             appendLine("👤 المرسل: ${_userName.value}")
             appendLine("📅 ${dateFormat.format(Date())}")
             appendLine("🛒 مشتريات: $pCount | 💰 مدفوعات: $yCount")
@@ -209,6 +250,28 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     fun formatAmount(amount: Double): String {
         return if (amount == amount.toLong().toDouble()) "%.0f".format(amount) else "%.2f".format(amount)
     }
+
+    fun formatDate(timestamp: Long): String {
+        return SimpleDateFormat("yyyy/MM/dd", Locale("ar")).format(Date(timestamp))
+    }
+
+    fun formatTime(timestamp: Long): String {
+        return SimpleDateFormat("HH:mm", Locale("ar")).format(Date(timestamp))
+    }
+
+    fun formatDateTime(timestamp: Long): String {
+        return SimpleDateFormat("yyyy/MM/dd HH:mm", Locale("ar")).format(Date(timestamp))
+    }
+
+    data class ReportItem(
+        val id: Long,
+        val storeName: String,
+        val description: String,
+        val amount: Double,
+        val type: TransactionType,
+        val date: Long,
+        val note: String
+    )
 
     data class LastTransactionInfo(
         val storeName: String,
