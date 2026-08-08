@@ -84,6 +84,16 @@ fun MainScreen(viewModel: BudgetViewModel) {
                         indicatorColor = Color(0xFF1A3A1A)
                     )
                 )
+                NavigationBarItem(
+                    selected = selectedTab == 3, onClick = { selectedTab = 3 },
+                    icon = { Icon(Icons.Default.Assessment, null) },
+                    label = { Text("التقارير", fontSize = 10.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFFE8C547), selectedTextColor = Color(0xFFE8C547),
+                        unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray,
+                        indicatorColor = Color(0xFF2A2A1A)
+                    )
+                )
             }
         }
     ) { padding ->
@@ -91,7 +101,6 @@ fun MainScreen(viewModel: BudgetViewModel) {
             when (selectedTab) {
                 0 -> HomeTab(
                     viewModel = viewModel,
-                    storesWithDebt = storesWithDebt,
                     lastTransaction = lastTransaction,
                     userName = userName,
                     onAddPurchase = { showAddPurchase = true },
@@ -104,6 +113,10 @@ fun MainScreen(viewModel: BudgetViewModel) {
                     onAddPayment = { showAddPayment = true }
                 )
                 2 -> StoresTab(viewModel = viewModel)
+                3 -> ReportsTab(
+                    viewModel = viewModel,
+                    storesWithDebt = storesWithDebt
+                )
             }
         }
     }
@@ -147,12 +160,11 @@ fun MainScreen(viewModel: BudgetViewModel) {
 }
 
 // ═══════════════════════════════════════════
-// تبويب الرئيسية — مُحسَّن
+// تبويب الرئيسية — بسيط ونظيف
 // ═══════════════════════════════════════════
 @Composable
 fun HomeTab(
     viewModel: BudgetViewModel,
-    storesWithDebt: List<BudgetViewModel.StoreWithDebt>,
     lastTransaction: BudgetViewModel.LastTransactionInfo?,
     userName: String,
     onAddPurchase: () -> Unit,
@@ -162,15 +174,7 @@ fun HomeTab(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var isExporting by remember { mutableStateOf(false) }
-    var showDetailedReport by remember { mutableStateOf(false) }
     val dateFormat = remember { SimpleDateFormat("HH:mm - yyyy/MM/dd", Locale("ar")) }
-
-    val transactionCount by viewModel.transactionCount.collectAsState()
-    val purchaseCount by viewModel.purchaseCount.collectAsState()
-    val paymentCount by viewModel.paymentCount.collectAsState()
-    val allTimePurchases by viewModel.allTimePurchases.collectAsState()
-    val allTimePayments by viewModel.allTimePayments.collectAsState()
-    val todayTransactions by viewModel.todayTransactions.collectAsState()
 
     Column(
         modifier = Modifier
@@ -198,142 +202,110 @@ fun HomeTab(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        // ═══ إحصائيات سريعة ═══
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Analytics, null, tint = Color(0xFFE8C547), modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("إحصائيات", color = Color(0xFFE8C547), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(Icons.Default.Receipt, "العمليات", "$transactionCount", Color(0xFF2196F3))
-                    StatItem(Icons.Default.ShoppingCart, "مشتريات", "$purchaseCount", Color(0xFFF44336))
-                    StatItem(Icons.Default.Payment, "مدفوعات", "$paymentCount", Color(0xFF4CAF50))
-                }
-
-                Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = Color(0xFF2A2A3E))
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(Icons.Default.TrendingUp, "إجمالي المشتريات", viewModel.formatAmount(allTimePurchases), Color(0xFFF44336))
-                    StatItem(Icons.Default.TrendingDown, "إجمالي المدفوعات", viewModel.formatAmount(allTimePayments), Color(0xFF4CAF50))
-                }
-
-                if (todayTransactions.isNotEmpty()) {
-                    Spacer(Modifier.height(12.dp))
-                    HorizontalDivider(color = Color(0xFF2A2A3E))
-                    Spacer(Modifier.height(8.dp))
-                    Text("📌 ${todayTransactions.size} عملية اليوم", color = Color(0xFF888888), fontSize = 12.sp)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        // ═══ زر التقرير المفصل ═══
-        OutlinedButton(
-            onClick = { showDetailedReport = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE8C547)),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(vertical = 12.dp)
-        ) {
-            Icon(Icons.Default.Assessment, null, tint = Color(0xFFE8C547), modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("📋 تقرير مفصل بالعمليات", color = Color(0xFFE8C547), fontSize = 14.sp)
-        }
-
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(24.dp))
 
         // ═══ آخر عملية ═══
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (lastTransaction != null) {
                     val isPurchase = lastTransaction.type == TransactionType.PURCHASE
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("آخر عملية", color = Color(0xFFE8C547), fontSize = 12.sp)
-                        Spacer(Modifier.height(4.dp))
+                        Text("آخر عملية", color = Color(0xFFE8C547), fontSize = 13.sp)
+                        Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isPurchase) Color(0xFFF44336).copy(alpha = 0.2f)
+                                    else Color(0xFF4CAF50).copy(alpha = 0.2f)
+                                ),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    if (isPurchase) "  شراء  " else "  دفع  ",
+                                    color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
+                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
                             Text(
-                                if (isPurchase) "شراء" else "دفع",
-                                color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
-                                fontSize = 13.sp, fontWeight = FontWeight.Bold
+                                lastTransaction.storeName,
+                                color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
                             )
-                            Text(" من ${lastTransaction.storeName}", color = Color.White, fontSize = 13.sp)
                         }
                         if (lastTransaction.description.isNotBlank()) {
-                            Text(lastTransaction.description, color = Color.Gray, fontSize = 11.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text(lastTransaction.description, color = Color.Gray, fontSize = 12.sp)
                         }
-                        Text(dateFormat.format(Date(lastTransaction.date)), color = Color(0xFF666666), fontSize = 11.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Schedule, null, tint = Color(0xFF666666), modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                dateFormat.format(Date(lastTransaction.date)),
+                                color = Color(0xFF666666), fontSize = 12.sp
+                            )
+                        }
                     }
                     Text(
                         viewModel.formatAmount(lastTransaction.amount),
                         color = if (isPurchase) Color(0xFFF44336) else Color(0xFF4CAF50),
-                        fontSize = 24.sp, fontWeight = FontWeight.Bold
+                        fontSize = 28.sp, fontWeight = FontWeight.Bold
                     )
                 } else {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Default.Receipt, null, tint = Color.Gray, modifier = Modifier.size(32.dp))
-                        Spacer(Modifier.height(6.dp))
-                        Text("لا توجد معاملات بعد", color = Color.Gray, fontSize = 14.sp)
-                        Text("ابدأ بتسجيل أول شراء", color = Color(0xFF666666), fontSize = 11.sp)
+                        Icon(Icons.Default.Receipt, null, tint = Color(0xFF444444), modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(12.dp))
+                        Text("لا توجد معاملات بعد", color = Color.Gray, fontSize = 16.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text("ابدأ بتسجيل أول شراء أدناه", color = Color(0xFF555555), fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(20.dp))
 
         // ═══ أزرار شراء/دفع ═══
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
-                onClick = onAddPurchase, modifier = Modifier.weight(1f),
+                onClick = onAddPurchase,
+                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(vertical = 14.dp)
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
                 Icon(Icons.Default.AddShoppingCart, null, tint = Color.White)
-                Spacer(Modifier.width(6.dp))
-                Text("شراء", color = Color.White, fontSize = 15.sp)
+                Spacer(Modifier.width(8.dp))
+                Text("شراء", color = Color.White, fontSize = 16.sp)
             }
             Button(
-                onClick = onAddPayment, modifier = Modifier.weight(1f),
+                onClick = onAddPayment,
+                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(vertical = 14.dp)
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
                 Icon(Icons.Default.Payment, null, tint = Color.White)
-                Spacer(Modifier.width(6.dp))
-                Text("دفع", color = Color.White, fontSize = 15.sp)
+                Spacer(Modifier.width(8.dp))
+                Text("دفع", color = Color.White, fontSize = 16.sp)
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         // ═══ زر التصدير ═══
         Button(
@@ -354,34 +326,182 @@ fun HomeTab(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isExporting,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(vertical = 14.dp)
+            shape = RoundedCornerShape(14.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             if (isExporting) {
-                CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
                 Icon(Icons.Default.Share, null, tint = Color.White)
             }
             Spacer(Modifier.width(8.dp))
-            Text("📤 تصدير وإرسال عبر الواتساب", color = Color.White, fontSize = 14.sp)
+            Text("📤 إرسال عبر الواتساب", color = Color.White, fontSize = 15.sp)
+        }
+
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+// ═══════════════════════════════════════════
+// تبويب التقارير — جديد
+// ═══════════════════════════════════════════
+@Composable
+fun ReportsTab(
+    viewModel: BudgetViewModel,
+    storesWithDebt: List<BudgetViewModel.StoreWithDebt>
+) {
+    val transactionCount by viewModel.transactionCount.collectAsState()
+    val purchaseCount by viewModel.purchaseCount.collectAsState()
+    val paymentCount by viewModel.paymentCount.collectAsState()
+    val allTimePurchases by viewModel.allTimePurchases.collectAsState()
+    val allTimePayments by viewModel.allTimePayments.collectAsState()
+    val todayTransactions by viewModel.todayTransactions.collectAsState()
+    var showDetailedReport by remember { mutableStateOf(false) }
+
+    val totalDebt = allTimePurchases - allTimePayments
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D0D0D))
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text("التقارير", fontSize = 22.sp, color = Color(0xFFE8C547), fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+
+        // ═══ إحصائيات العمليات ═══
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Analytics, null, tint = Color(0xFFE8C547), modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("إحصائيات العمليات", color = Color(0xFFE8C547), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(Icons.Default.Receipt, "العمليات", "$transactionCount", Color(0xFF2196F3))
+                    StatItem(Icons.Default.ShoppingCart, "مشتريات", "$purchaseCount", Color(0xFFF44336))
+                    StatItem(Icons.Default.Payment, "مدفوعات", "$paymentCount", Color(0xFF4CAF50))
+                }
+
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = Color(0xFF2A2A3E))
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(Icons.Default.TrendingUp, "إجمالي المشتريات", viewModel.formatAmount(allTimePurchases), Color(0xFFF44336))
+                    StatItem(Icons.Default.TrendingDown, "إجمالي المدفوعات", viewModel.formatAmount(allTimePayments), Color(0xFF4CAF50))
+                }
+
+                if (todayTransactions.isNotEmpty()) {
+                    Spacer(Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFF2A2A3E))
+                    Spacer(Modifier.height(10.dp))
+                    Text("📌 ${todayTransactions.size} عملية اليوم", color = Color(0xFF888888), fontSize = 12.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // ═══ المديونية الكلية ═══
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (totalDebt > 0) Color(0xFF2A1A1A) else if (totalDebt < 0) Color(0xFF1A2A1A) else Color(0xFF1A1A2E)
+            ),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        if (totalDebt > 0) "المديونية الكلية" else if (totalDebt < 0) "رصيد لك" else "كل شيء مسدد",
+                        color = Color.White, fontSize = 14.sp
+                    )
+                    Text(
+                        "${transactionCount} عملية مسجلة",
+                        color = Color(0xFF666666), fontSize = 11.sp
+                    )
+                }
+                Text(
+                    viewModel.formatAmount(kotlin.math.abs(totalDebt)),
+                    color = if (totalDebt > 0) Color(0xFFF44336) else if (totalDebt < 0) Color(0xFF4CAF50) else Color.Gray,
+                    fontSize = 26.sp, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // ═══ زر التقرير المفصل ═══
+        OutlinedButton(
+            onClick = { showDetailedReport = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE8C547)),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(vertical = 14.dp)
+        ) {
+            Icon(Icons.Default.Assessment, null, tint = Color(0xFFE8C547), modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("📋 تقرير مفصل بالعمليات", color = Color(0xFFE8C547), fontSize = 14.sp)
         }
 
         Spacer(Modifier.height(20.dp))
 
         // ═══ حسابات البقالات ═══
-        if (storesWithDebt.any { it.debt != 0.0 }) {
-            Text("حسابات البقالات", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            for (item in storesWithDebt.filter { it.debt != 0.0 }) {
+        Text("حسابات البقالات", color = Color(0xFFE8C547), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+
+        if (storesWithDebt.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Store, null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text("لا توجد بقالات مسجلة", color = Color.Gray, fontSize = 14.sp)
+                }
+            }
+        } else {
+            for (item in storesWithDebt) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (item.debt > 0) Color(0xFF2A1A1A) else Color(0xFF1A2A1A)
+                        containerColor = if (item.debt > 0) Color(0xFF2A1A1A)
+                        else if (item.debt < 0) Color(0xFF1A2A1A)
+                        else Color(0xFF1A1A2E)
                     ),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -396,29 +516,20 @@ fun HomeTab(
                                 )
                             }
                         }
-                        Text(
-                            viewModel.formatAmount(kotlin.math.abs(item.debt)),
-                            color = if (item.debt > 0) Color(0xFFF44336) else Color(0xFF4CAF50),
-                            fontSize = 18.sp, fontWeight = FontWeight.Bold
-                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                if (item.debt > 0) "عليك" else if (item.debt < 0) "لك" else "مسدد",
+                                color = Color(0xFF888888), fontSize = 10.sp
+                            )
+                            Text(
+                                viewModel.formatAmount(kotlin.math.abs(item.debt)),
+                                color = if (item.debt > 0) Color(0xFFF44336)
+                                else if (item.debt < 0) Color(0xFF4CAF50)
+                                else Color.Gray,
+                                fontSize = 18.sp, fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                }
-            }
-        }
-
-        if (storesWithDebt.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(Icons.Default.Store, null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text("ابدأ بإضافة بقالة", color = Color.Gray, fontSize = 15.sp)
                 }
             }
         }
@@ -426,7 +537,6 @@ fun HomeTab(
         Spacer(Modifier.height(32.dp))
     }
 
-    // ═══ حوار التقرير المفصل ═══
     if (showDetailedReport) {
         DetailedReportDialog(viewModel = viewModel, onDismiss = { showDetailedReport = false })
     }
@@ -481,7 +591,9 @@ fun DetailedReportDialog(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
                 ) {
                     item {
                         Row(
