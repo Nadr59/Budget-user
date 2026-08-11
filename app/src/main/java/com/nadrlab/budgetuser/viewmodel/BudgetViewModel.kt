@@ -269,6 +269,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     // ═══ جديد: تقرير مفصل للمشرف ═══
     
                // ═══ تقرير مفصل للمشرف (مُحدَّث) ═══
+    
     suspend fun generateReportForAdmin(): String {
         val stores = db.storeDao().getAllStoresOnce()
         val transactions = db.transactionDao().getAllTransactionsOnce()
@@ -326,14 +327,15 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
                 appendLine("المديونية: ${formatAmount(kotlin.math.abs(storeDebt))}")
                 appendLine("")
 
-                appendLine("التاريخ  | الوقت | النوع | الوصف              | المبلغ")
-                appendLine("---------|-------|-------|--------------------|---------")
+                appendLine("التاريخ  | الوقت | النوع | الوصف              | المبلغ      | الملاحظة")
+                appendLine("---------|-------|-------|--------------------|-------------|----------")
                 for (tx in storeTransactions) {
                     val date = dateOnly.format(Date(tx.date))
                     val time = timeOnly.format(Date(tx.date))
                     val type = if (tx.type == TransactionType.PURCHASE) "شراء" else "دفع "
                     val desc = if (tx.description.isNotBlank()) tx.description else "بدون وصف"
-                    appendLine("$date | $time | $type | $desc | ${formatAmount(tx.amount)}")
+                    val note = if (tx.note.isNotBlank()) tx.note else "-"
+                    appendLine("$date | $time | $type | $desc | ${formatAmount(tx.amount)} | $note")
                 }
                 appendLine("")
             }
@@ -353,9 +355,11 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             appendLine("تقرير تلقائي من تطبيق مشتريات المستخدم")
         }
     }
+        
 
     // ═══ جديد: تقرير بقالة محددة ═══
-    suspend fun generateStoreReport(storeId: Long): String {
+     
+        suspend fun generateStoreReport(storeId: Long): String {
         val store = db.storeDao().getStoreById(storeId) ?: return "البقالة غير موجودة"
         val transactions = db.transactionDao().getAllTransactionsOnce()
             .filter { it.storeId == storeId }
@@ -393,14 +397,15 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             appendLine("المديونية: ${formatAmount(kotlin.math.abs(debt))}")
             appendLine("")
 
-            appendLine("التاريخ  | الوقت | النوع | الوصف              | المبلغ")
-            appendLine("---------|-------|-------|--------------------|---------")
+            appendLine("التاريخ  | الوقت | النوع | الوصف              | المبلغ      | الملاحظة")
+            appendLine("---------|-------|-------|--------------------|-------------|----------")
             for (tx in transactions) {
                 val date = dateOnly.format(Date(tx.date))
                 val time = timeOnly.format(Date(tx.date))
                 val type = if (tx.type == TransactionType.PURCHASE) "شراء" else "دفع "
                 val desc = if (tx.description.isNotBlank()) tx.description else "بدون وصف"
-                appendLine("$date | $time | $type | $desc | ${formatAmount(tx.amount)}")
+                val note = if (tx.note.isNotBlank()) tx.note else "-"
+                appendLine("$date | $time | $type | $desc | ${formatAmount(tx.amount)} | $note")
             }
             appendLine("")
 
